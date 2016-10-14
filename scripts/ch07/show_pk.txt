@@ -1,0 +1,10 @@
+select
+a.table_name
+,a.constraint_name
+,a.constraint_type
+from dba_constraints a
+where a.owner = upper('&table_owner')
+and a.constraint_type in ('P','U')
+order by a.table_name;
+
+

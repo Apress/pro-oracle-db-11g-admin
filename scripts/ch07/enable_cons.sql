@@ -1,0 +1,13 @@
+spo enable_dyn.sql
+select 'alter table ' || a.table_name
+|| ' enable constraint ' || a.constraint_name || ';'
+from dba_constraints a
+,dba_constraints b
+where a.r_constraint_name = b.constraint_name
+and a.r_owner = b.owner
+and a.constraint_type = 'R'
+and b.owner = upper('&table_owner');
+spo off
+
+
+

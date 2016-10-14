@@ -1,0 +1,48 @@
+#-----------------------------------------------------------#
+# show environment variables in sorted list
+  function envs {
+    if test -z "$1"
+      then /bin/env | /bin/sort
+      else /bin/env | /bin/sort | /bin/grep -i $1
+    fi
+  } # envs
+#-----------------------------------------------------------#
+# login to sqlplus
+  function sp {
+    time sqlplus "/ as sysdba"
+  } # sp
+#-----------------------------------------------------------#
+# find largest files below this point
+function flf {
+  find . -ls | sort -nrk7 | head -10
+}
+#-----------------------------------------------------------#
+# find largest directories consuming space below this point
+function fld {
+  du -S . | sort -nr | head -10
+}
+#-----------------------------------------------------------#
+# cd to bdump
+  function bdump {
+   echo $ORACLE_HOME | grep 11 >/dev/null
+   if [ $? -eq 0 ]; then
+     lower_sid=$(echo $ORACLE_SID | tr '[:upper:]' '[:lower:]')
+     cd $ORACLE_BASE/diag/rdbms/$lower_sid/$ORACLE_SID/trace
+   else
+     cd $ORACLE_BASE/admin/$ORACLE_SID/bdump
+   fi
+  } # bdump
+#-----------------------------------------------------------#
+# view alert log
+  function valert {
+   echo $ORACLE_HOME | grep 11 >/dev/null
+   if [ $? -eq 0 ]; then
+     lower_sid=$(echo $ORACLE_SID | tr '[:upper:]' '[:lower:]')
+     view $ORACLE_BASE/diag/rdbms/$lower_sid/$ORACLE_SID/trace/alert_$ORACLE_SID.log
+   else
+     view $ORACLE_BASE/admin/$ORACLE_SID/bdump/alert_$ORACLE_SID.log
+   fi
+  } # valert
+#-----------------------------------------------------------#
+
+

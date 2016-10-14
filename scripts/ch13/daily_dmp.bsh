@@ -1,0 +1,16 @@
+#!/bin/bash
+# source OS variables
+. /var/opt/oracle/oraset DWREP
+#
+DAY=$(date +%Y_%m_%d)
+SID=DWREP
+#---------------------------------------------------
+# First create export dump file with metadata only
+expdp darl/foo dumpfile=${SID}.${DAY}.dmp content=metadata_only \
+directory=dwrep_dp full=y logfile=${SID}.${DAY}.log
+#---------------------------------------------------
+# Now create DDL file from the export dump file.
+impdp darl/foo directory=dwrep_dp dumpfile=${SID}.${DAY}.dmp \
+SQLFILE=${SID}.${DAY}.sql logfile=${SID}.${DAY}.sql.log
+#
+exit 0

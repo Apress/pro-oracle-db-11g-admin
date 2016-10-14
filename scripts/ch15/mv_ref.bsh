@@ -1,0 +1,37 @@
+#!/bin/bash
+if [ $# -ne 1 ]; then
+  echo "Usage: $0 SID"
+  exit 1
+fi
+#
+HOSTNAME=`uname -a | awk '{print$2}'`
+MAILX='/bin/mailx'
+MAIL_LIST='lellison@oracle.com'
+ORACLE_SID=$1
+jobname=CWP
+# See Chapter 2 for details on using a utility
+# like oraset to source OS variables
+# Source oracle OS variables
+. /var/opt/oracle/oraset $ORACLE_SID
+date
+#
+sqlplus -s <<EOF
+rep_mv2/foobar
+WHENEVER SQLERROR EXIT FAILURE
+exec dbms_mview.refresh('CWP_COUNTRY_INFO','C');
+EOF
+#
+if [ $? -ne 0 ]; then
+echo "not okay"
+$MAILX -s "Problem with MV refresh on $HOSTNAME $jobname" $MAIL_LIST <<EOF
+$HOSTNAME $jobname MVs not okay.
+EOF
+else
+echo "okay"
+$MAILX -s "MV refresh OK on $HOSTNAME $jobname" $MAIL_LIST <<EOF
+$HOSTNAME $jobname MVs okay.
+EOF
+fi
+#
+date
+exit 0

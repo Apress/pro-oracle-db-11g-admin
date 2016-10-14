@@ -1,0 +1,73 @@
+1  #!/bin/bash
+2  HOLDSID=${1}  # SID name
+3  PRG=`basename $0`
+4  USAGE="Usage: ${PRG} <database name> "
+5  if [ -z "${HOLDSID}" ]; then
+6     echo "${USAGE}"
+7     exit 1
+8  fi
+9  #----------------------------------------------
+10  # source environment variables (see Chapter 2 for details on oraset)
+11  . /var/opt/oracle/oraset $HOLDSID
+12  BOX=`uname -a | awk '{print$2}'`
+13  MAILX='/bin/mailx'
+14  MAIL_LIST='larry@oracle.com'
+15  NLS_DATE_FORMAT='dd-mon-yy hh24:mi:ss'
+16  date
+17  #----------------------------------------------
+18  LOCKFILE=/tmp/$PRG.lock
+19  if [ -f $LOCKFILE ]; then
+20    echo "lock file exists, exiting..."
+21    exit 1
+22  else
+23    echo "DO NOT REMOVE, $LOCKFILE" > $LOCKFILE
+24  fi
+25  #----------------------------------------------
+26  rman nocatalog <<EOF
+27  connect target /
+28  set echo on;
+29  show all;
+30  # Synchronize RMAN with files on OS
+31  crosscheck backup;
+32  crosscheck copy;
+33  crosscheck archivelog all;
+34  # Configure environment, redundant to run each time, but ensures set correctly.
+35  configure controlfile autobackup on;
+36  configure controlfile autobackup format for device type disk to 
+'/oradump01/DWREP/rman/rman_ctl_%F.bk';
+37  configure retention policy to redundancy 1;
+38  configure           device type disk parallelism 5;
+39  configure channel 1 device type disk format '/ora08/DWREP/rman/rman1_%U.bk';
+40  configure channel 2 device type disk format '/ora08/DWREP/rman/rman2_%U.bk';
+41  configure channel 3 device type disk format '/ora08/DWREP/rman/rman3_%U.bk';
+42  configure channel 4 device type disk format '/ora09/DWREP/rman/rman4_%U.bk';
+43  configure channel 5 device type disk format '/ora09/DWREP/rman/rman5_%U.bk';
+44  # Backup datafiles, archive redo logs, and control file
+45  backup as compressed backupset incremental level=0 database plus archivelog;
+46  # Delete obsolete backups and archive logs as defined by retention policy.
+47  delete noprompt obsolete;
+48  EOF
+49  #----------------------------------------------
+50  if [ $? -ne 0 ]; then
+51    echo "RMAN problem..."
+52    echo "Check RMAN backups" | $MAILX -s 
+"RMAN issue: $ORACLE_SID on $BOX" $MAIL_LIST
+53  else
+54    echo "RMAN ran okay..."
+55  fi
+56  #----------------------------------------------
+57  sqlplus -s /nolog <<EOF
+58  connect / as sysdba;
+59  alter database backup controlfile to trace;
+60  COL dbid NEW_VALUE hold_dbid
+61  SELECT dbid FROM v\$database;
+62  exec dbms_system.ksdwrt(2,'DBID: '||TO_CHAR(&hold_dbid));
+63  EXIT
+64  EOF
+65  #----------------------------------------------
+66  if [ -f $LOCKFILE ]; then
+67    rm $LOCKFILE
+68  fi
+69  #----------------------------------------------
+70  date
+71  exit 0

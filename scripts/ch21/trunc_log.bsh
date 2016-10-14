@@ -1,0 +1,32 @@
+#!/bin/bash
+#
+if [ $# -ne 1 ]; then
+echo "Usage: $0 SID"
+exit 1
+fi
+# See chapter 2 for details on setting OS variables
+# Source oracle OS variables with oraset script
+. /var/opt/oracle/oraset $1
+#
+MAILX='/bin/mailx'
+MAIL_LIST='dkuhn@sun.com'
+#
+if [ -f $TNS_ADMIN/../log/listener.log ]; then
+cat /dev/null > $TNS_ADMIN/../log/listener.log
+fi
+if [ $? -ne 0 ]; then
+echo "trunc list. problem" | $MAILX -s "trunc list. problem $1" $MAIL_LIST
+else
+echo "no problem..."
+fi
+# A named listener log file
+if [ -f $TNS_ADMIN/../log/appinvprd.log ]; then
+cat /dev/null > $TNS_ADMIN/../log/appinvprd.log
+fi
+if [ $? -ne 0 ]; then
+echo "trunc list. problem" | $MAILX -s "trunc list. problem $1" $MAIL_LIST
+else
+echo "no problem..."
+fi
+#
+exit 0
